@@ -11,7 +11,7 @@
   </div>
   <div class="chat-container">
     <div class="messages" id="messages"></div>
-    <div id="loading" class="loading" style="display: none">加载中...</div>
+
     <div class="chat-send-container">
       <div class="input-container">
         <textarea
@@ -113,7 +113,8 @@ const fallbackCopyCode = (text, button) => {
 };
 
 // 格式化消息文本
-const formatMessage = (text) => {
+const formatMessage = (text, isLoading = false) => {
+  if (isLoading) return '<div class="message-bubble other"><a-spin /></div>';
   if (!text) return "";
 
   // 处理代码块（```标题\n代码内容```）
@@ -249,9 +250,29 @@ const sendMessage = () => {
   inputElement.value = "";
 
   // 显示加载动画
-  const loadingElement = document.getElementById("loading");
-  if (loadingElement) {
-    loadingElement.style.display = "block";
+  const messagesContainer = document.getElementById("messages");
+  if (messagesContainer) {
+    const loadingMessage = document.createElement("div");
+    loadingMessage.className = "message other";
+
+    const avatar = document.createElement("img");
+    avatar.src = require("../assets/bot-avatar.png");
+    avatar.alt = "Bot";
+
+    const loadingBubble = document.createElement("div");
+    loadingBubble.className = "message-bubble other";
+    loadingBubble.style.minHeight = "40px";
+    loadingBubble.style.maxWidth = "70%";
+    loadingBubble.style.padding = "0 16px"; // 1~2个字的横向间距
+    loadingBubble.style.display = "flex";
+    loadingBubble.style.alignItems = "center";
+    loadingBubble.style.justifyContent = "center";
+    loadingBubble.innerHTML =
+      "<svg width='28' height='28' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><defs><linearGradient id='gradient' x1='0%' y1='0%' x2='100%' y2='0%'><stop offset='0%' stop-color='#1890FF'/><stop offset='100%' stop-color='#E6F7FF'/></linearGradient></defs><circle cx='12' cy='12' r='10' stroke='url(#gradient)' stroke-width='3' fill='none' stroke-dasharray='5, 5'><animateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='1s' repeatCount='indefinite'/></circle></svg>";
+
+    loadingMessage.appendChild(avatar);
+    loadingMessage.appendChild(loadingBubble);
+    messagesContainer.appendChild(loadingMessage);
   }
 
   const selectElement = document.getElementById("chat-select");
@@ -282,21 +303,53 @@ const sendMessage = () => {
     .then((data) => {
       sendFlag.value = 0;
       // 隐藏加载动画
-      if (loadingElement) {
-        loadingElement.style.display = "none";
+      const messagesContainer = document.getElementById("messages");
+      if (messagesContainer) {
+        const loadingMessage =
+          messagesContainer.querySelector(".message.other");
+        if (loadingMessage) {
+          loadingMessage.remove();
+        }
       }
 
       if (data.choices && data.choices.length > 0) {
-        displayMessage("bot", data.choices[0].message.content);
+        const messagesContainer = document.getElementById("messages");
+        if (messagesContainer) {
+          const loadingBubble = messagesContainer.querySelector(
+            ".message-bubble.other"
+          );
+          if (loadingBubble) {
+            loadingBubble.innerHTML = formatMessage(
+              data.choices[0].message.content
+            );
+          } else {
+            displayMessage("bot", data.choices[0].message.content);
+          }
+        }
       } else {
-        displayMessage("bot", "出错了，请稍后再试。");
+        const messagesContainer = document.getElementById("messages");
+        if (messagesContainer) {
+          const loadingBubble = messagesContainer.querySelector(
+            ".message-bubble.other"
+          );
+          if (loadingBubble) {
+            loadingBubble.innerHTML = formatMessage("出错了，请稍后再试。");
+          } else {
+            displayMessage("bot", "出错了，请稍后再试。");
+          }
+        }
       }
     })
     .catch((error) => {
       sendFlag.value = 0;
       // 隐藏加载动画
-      if (loadingElement) {
-        loadingElement.style.display = "none";
+      const messagesContainer = document.getElementById("messages");
+      if (messagesContainer) {
+        const loadingMessage =
+          messagesContainer.querySelector(".message.other");
+        if (loadingMessage) {
+          loadingMessage.remove();
+        }
       }
 
       displayMessage("bot", "出错了，请稍后再试。");
@@ -711,6 +764,30 @@ body.dark-mode {
   font-size: 16px;
   color: #666;
   margin-bottom: 20px;
+}
+
+.message-bubble.other {
+  background-color: #f1f3f5;
+  border-radius: 12px;
+  padding: 12px 16px;
+  max-width: 85%;
+  margin-bottom: 15px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .input-container select {
